@@ -1,0 +1,33 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"SemVersion": "0.1.0",
+	"GameVersion": ">=517554",
+	"FriendlyName": "Reload From DD",
+	"Description": "Your equipment takes its consumables from the Dimensional Depot: weapon ammo, jetpack and chainsaw fuel, gas mask and hazmat filters, and healing items. It follows the game's own \"take from inventory before Dimensional Depot\" setting, and each kind can be switched off in Mod Options.",
+	"Category": "Modding",
+	"CreatedBy": "Zambie223",
+	"CreatedByURL": "https://github.com/Zambie223",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "ReloadFromDD",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "SML",
+			"Enabled": true,
+			"SemVersion": "^3.12.0"
+		}
+	]
+}

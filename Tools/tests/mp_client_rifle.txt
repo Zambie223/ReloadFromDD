@@ -1,0 +1,14 @@
+# Client: rifle reload (pairs with mp_host_rifle.txt). The client's world begins before the host counts its pawn,
+# so this waits well past the host's setup.
+wait 75
+log CLIENT RIFLE before reload: expect loaded 0, spare 40 (depot only)
+RFDD.Use weapon
+RFDD.Use reload
+wait 5
+log CLIENT RIFLE after reload: expect loaded 15 (predicted), spare 25 after replication
+RFDD.Use weapon
+wait 3
+RFDD.Use weapon
+log CLIENT RIFLE DONE
+wait 2
+quit

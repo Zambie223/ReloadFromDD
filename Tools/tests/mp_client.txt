@@ -1,0 +1,47 @@
+# Client half of the multiplayer test (see mp_host.txt). Starts when the client's world begins, which is
+# about when the host sees two players; actions sit in the middle of each 30-second slot.
+# Client: -userdir=<own folder> -ExecCmds="RFDD.ScriptOnLoad <this file>,open 127.0.0.1:7777"
+wait 10
+log CLIENT start
+RFDD.Status
+
+wait 35
+log CLIENT slot 1: rifle reload (prediction: loaded 15 locally; spare should include the depot)
+RFDD.Use weapon
+RFDD.Use reload
+wait 5
+RFDD.Use weapon
+wait 2
+RFDD.Use weapon
+
+wait 18
+log CLIENT slot 2: eat twice (hand 2 -> 1, then 1 stays and the depot pays)
+RFDD.Use eat
+wait 3
+RFDD.Use eat
+wait 3
+RFDD.Count Desc_Berry
+
+wait 19
+log CLIENT slot 3: gas mask charge from the client (ChargeForUse runs locally and on the server)
+RFDD.Use charge head
+wait 3
+RFDD.Count Desc_Filter
+
+wait 22
+log CLIENT slot 4: jetpack availability and HUD count from the client's view
+RFDD.Use jetpack
+wait 15
+RFDD.Use jetpack
+
+wait 15
+log CLIENT slot 5: host switched Ammo off; expect spare 0 here too
+RFDD.Status
+RFDD.Use weapon
+wait 30
+log CLIENT after Ammo back on: expect spare 30
+RFDD.Status
+RFDD.Use weapon
+log CLIENT DONE
+wait 10
+quit

@@ -1,0 +1,107 @@
+# Single-player behaviour test. Run with: -ExecCmds="RFDD.ScriptOnLoad <this file>,open Persistent_Level?loadgame=<save>"
+# Every step logs counts; check them against the expectations in the "log" lines.
+wait 20
+log START
+RFDD.Status
+RFDD.Calls reset
+RFDD.DumpEquipment
+RFDD.InvFirst 1
+
+log ===== AMMO (rifle). Expect: spare 40 from the depot alone; after reload loaded = mag, depot 40 - mag
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+wait 3
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Depot Desc_CartridgeStandard -100000
+RFDD.Depot Desc_CartridgeStandard 40
+RFDD.Use empty
+RFDD.Use weapon
+RFDD.Use reload
+wait 5
+RFDD.Use weapon
+log ----- AMMO inventory first: inv 5, empty, reload. Expect inv 0, depot down by (mag - 5)
+RFDD.Inv Desc_CartridgeStandard 5
+RFDD.Use empty
+RFDD.Use reload
+wait 5
+RFDD.Use weapon
+log ----- AMMO depot first: inv 5, empty, reload. Expect inv stays 5, depot down by mag
+RFDD.InvFirst 0
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Inv Desc_CartridgeStandard 5
+RFDD.Use empty
+RFDD.Use reload
+wait 5
+RFDD.Use weapon
+RFDD.InvFirst 1
+log ----- AMMO switched off: inventory empty. Expect spare 0, can reload no
+RFDD.Set Ammo false
+wait 2
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Use empty
+RFDD.Use weapon
+RFDD.Set Ammo true
+wait 2
+RFDD.Use weapon
+
+log ===== HEALING (berries). Hand 2, depot 10
+RFDD.Depot Desc_Berry -100000
+RFDD.Depot Desc_Berry 10
+RFDD.Equip Desc_Berry arms 2
+wait 3
+log ----- inventory first: eat x2. Expect hand 2->1 (depot 10), then hand stays 1 (depot 9)
+RFDD.Use eat
+wait 1
+RFDD.Use eat
+wait 1
+log ----- depot first: eat. Expect hand stays 1, depot 8
+RFDD.InvFirst 0
+RFDD.Use eat
+wait 1
+RFDD.InvFirst 1
+
+log ===== FILTERS (gas mask, head). Depot 10, inventory 0. Expect can afford yes, depot 9 after charge
+RFDD.Inv Desc_Filter clear
+RFDD.Depot Desc_Filter -100000
+RFDD.Depot Desc_Filter 10
+RFDD.Equip BP_EquipmentDescriptorGasmask head
+wait 3
+RFDD.Use charge head
+log ===== FILTERS (hazmat suit, body). Depot 10, inventory 0
+RFDD.Inv Desc_HazmatFilter clear
+RFDD.Depot Desc_HazmatFilter -100000
+RFDD.Depot Desc_HazmatFilter 10
+RFDD.Equip BP_EquipmentDescriptorHazmatSuit body
+wait 3
+RFDD.Use charge body
+RFDD.Count Desc_HazmatFilter
+
+log ===== JETPACK (back). Depot 20 packaged fuel, inventory 0. Expect fuel type available, HUD count 20; after drain + regen, depot 19
+RFDD.Inv Desc_Fuel clear
+RFDD.Depot Desc_Fuel -100000
+RFDD.Depot Desc_Fuel 20
+RFDD.Equip BP_EquipmentDescriptorJetPack back
+wait 3
+RFDD.Use jetpack
+RFDD.Use drain
+wait 6
+RFDD.Use jetpack
+
+log ===== CHAINSAW (arms). Depot 10 solid biofuel, inventory 0. Expect has fuel yes; saw 10000 s burns stored energy, the next takes 1 from the depot
+RFDD.Inv Desc_Biofuel clear
+RFDD.Depot Desc_Biofuel -100000
+RFDD.Depot Desc_Biofuel 10
+RFDD.Equip Desc_Chainsaw arms
+wait 3
+RFDD.Use chainsaw
+RFDD.Use saw 10000
+RFDD.Use saw 10000
+RFDD.Use chainsaw
+
+log ===== OVERHEAD (hook calls while idling 60 s)
+RFDD.Calls reset
+wait 60
+RFDD.Calls
+RFDD.Status
+log DONE
+# Close the game right away: a session left running autosaves over the save's real session name.
+quit

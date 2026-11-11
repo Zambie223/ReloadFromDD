@@ -1,0 +1,18 @@
+# Listen host: rifle reload by the CLIENT (pairs with mp_client_rifle.txt).
+wait 5
+waitplayers 2 600
+log RIFLE T0 (both players present)
+RFDD.DevPlayer 1
+wait 15
+log RIFLE setup: client rifle, depot 40, inventory 0
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Depot Desc_CartridgeStandard -100000
+RFDD.Depot Desc_CartridgeStandard 40
+RFDD.Use empty
+wait 100
+log RIFLE server view after the client's reload: expect loaded 15, depot 25
+RFDD.Use weapon
+wait 5
+log RIFLE DONE
+quit

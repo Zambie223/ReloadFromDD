@@ -1,0 +1,36 @@
+# Prepares a save for a hands-on check by a person: consumables only in the depot, every covered item equipped.
+# Does NOT quit; the person closes the game when done.
+wait 15
+log HANDSON setup
+RFDD.Status
+RFDD.InvFirst 0
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Inv Desc_NobeliskExplosive clear
+RFDD.Inv Desc_SpikedRebar clear
+RFDD.Inv Desc_Filter clear
+RFDD.Inv Desc_HazmatFilter clear
+RFDD.Inv Desc_Fuel clear
+RFDD.Inv Desc_Biofuel clear
+RFDD.Inv Desc_Berry clear
+RFDD.Inv Desc_Medkit clear
+RFDD.Depot Desc_CartridgeStandard 300
+RFDD.Depot Desc_NobeliskExplosive 50
+RFDD.Depot Desc_SpikedRebar 100
+RFDD.Depot Desc_Filter 20
+RFDD.Depot Desc_HazmatFilter 20
+RFDD.Depot Desc_Fuel 50
+RFDD.Depot Desc_Biofuel 50
+RFDD.Depot Desc_Berry 30
+RFDD.Depot Desc_Medkit 10
+RFDD.Equip BP_EquipmentDescriptorJetPack back
+RFDD.Equip BP_EquipmentDescriptorGasmask head
+RFDD.Equip Desc_Chainsaw arms
+RFDD.Equip Desc_RebarGun arms
+RFDD.Equip BP_EquipmentDescriptorNobeliskDetonator arms
+RFDD.Equip Desc_Berry arms 3
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+RFDD.Inv BP_EquipmentDescriptorHazmatSuit 1
+wait 2
+RFDD.Use weapon
+RFDD.Use jetpack
+log HANDSON ready

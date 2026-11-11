@@ -1,0 +1,18 @@
+# Client half of ds_test.sh: logs the client's view while the server drives the equipment. Quits by itself.
+wait 20
+log DSCLIENT start
+RFDD.Status
+wait 45
+log DSCLIENT rifle view (server reloaded): expect loaded 15, spare 25, depot 25
+RFDD.Use weapon
+wait 40
+log DSCLIENT jetpack view: expect depot fuel types available, HUD count from the depot
+RFDD.Use jetpack
+wait 25
+log DSCLIENT server switch view: expect Ammo=off around now
+RFDD.Status
+RFDD.Use weapon
+wait 30
+RFDD.Status
+log DSCLIENT DONE
+quit

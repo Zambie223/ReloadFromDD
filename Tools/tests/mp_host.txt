@@ -1,0 +1,62 @@
+# Listen-host half of the multiplayer test. The host sets up the CLIENT's character (RFDD.DevPlayer 1);
+# mp_client.txt performs the actions on the client in 30-second slots that start when both players are present.
+# Host: -ExecCmds="RFDD.ScriptOnLoad <this file>,open Persistent_Level?loadgame=<save>?listen"
+wait 5
+waitplayers 2 600
+log MP T0 (both players present)
+RFDD.Status
+RFDD.DevPlayer 1
+RFDD.InvFirst 1
+wait 30
+
+log MP slot 1 (T0+30): client rifle, depot 40, inventory 0. Client reloads; expect loaded 15, depot 25 on both sides
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Depot Desc_CartridgeStandard -100000
+RFDD.Depot Desc_CartridgeStandard 40
+RFDD.Use empty
+wait 25
+RFDD.Use weapon
+wait 5
+
+log MP slot 2 (T0+60): client berries, hand 2, depot 10. Client eats twice; expect hand 1, depot 9
+RFDD.Depot Desc_Berry -100000
+RFDD.Depot Desc_Berry 10
+RFDD.Equip Desc_Berry arms 2
+wait 25
+RFDD.Count Desc_Berry
+wait 5
+
+log MP slot 3 (T0+90): client gas mask, depot 10 filters. Client charges; expect depot 9, client inventory untouched
+RFDD.Inv Desc_Filter clear
+RFDD.Depot Desc_Filter -100000
+RFDD.Depot Desc_Filter 10
+RFDD.Equip BP_EquipmentDescriptorGasmask head
+wait 25
+RFDD.Count Desc_Filter
+wait 5
+
+log MP slot 4 (T0+120): client jetpack, depot 20 packaged fuel (+ the save's biofuel). Server drains at T0+135; expect a refuel from the depot
+RFDD.Inv Desc_Fuel clear
+RFDD.Depot Desc_Fuel -100000
+RFDD.Depot Desc_Fuel 20
+RFDD.Equip BP_EquipmentDescriptorJetPack back
+wait 15
+RFDD.Use drain
+wait 10
+RFDD.Use jetpack
+wait 5
+
+log MP slot 5 (T0+150): host turns Ammo off; the client must follow (spare = inventory only)
+RFDD.DevPlayer 1
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Depot Desc_CartridgeStandard -100000
+RFDD.Depot Desc_CartridgeStandard 30
+RFDD.Set Ammo false
+wait 30
+RFDD.Set Ammo true
+wait 15
+RFDD.Calls
+log MP DONE
+quit

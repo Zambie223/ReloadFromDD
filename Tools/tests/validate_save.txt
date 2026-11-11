@@ -1,0 +1,8 @@
+# Loads a save, waits past one autosave interval (the game autosaves every 5 minutes by default), then quits.
+# The caller checks that the save loaded and which file name its autosave used.
+wait 10
+log VALIDATE loaded
+RFDD.Status
+wait 390
+log VALIDATE done
+quit

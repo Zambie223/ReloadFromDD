@@ -1,0 +1,85 @@
+# Edge cases (single player). Run like sp_test.txt.
+wait 20
+log EDGE START
+RFDD.InvFirst 1
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+wait 3
+
+log E1 inventory full, ammo only in the depot. Expect loaded 15, depot 40 -> 25 (taking from the depot needs no inventory space)
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Depot Desc_CartridgeStandard -100000
+RFDD.Depot Desc_CartridgeStandard 40
+RFDD.Inv Desc_Cement 100000
+RFDD.Use empty
+RFDD.Use reload
+wait 5
+RFDD.Use weapon
+RFDD.Inv Desc_Cement clear
+
+log E2 depot emptied during the reload timer: inventory 3, depot 10. Expect loaded 3 from the inventory, no partial-remove warning
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Depot Desc_CartridgeStandard -100000
+RFDD.Depot Desc_CartridgeStandard 10
+RFDD.Inv Desc_CartridgeStandard 3
+RFDD.Use empty
+RFDD.Use reload
+RFDD.Depot Desc_CartridgeStandard -100000
+wait 5
+RFDD.Use weapon
+
+log E3 not enough for a full magazine: inventory 5, depot 4. Expect loaded 9, inventory 0, depot 0
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Depot Desc_CartridgeStandard 4
+RFDD.Inv Desc_CartridgeStandard 5
+RFDD.Use empty
+RFDD.Use reload
+wait 5
+RFDD.Use weapon
+
+log E4 healing with an empty depot: hand 1. Expect the hand empties (vanilla)
+RFDD.Depot Desc_Berry -100000
+RFDD.Equip Desc_Berry arms 1
+wait 3
+RFDD.Use eat
+wait 1
+RFDD.Count Desc_Berry
+
+log E5 Healing switched off: depot 10, hand 2. Expect hand 2 -> 1 -> 0, depot stays 10
+RFDD.Set Healing false
+wait 2
+RFDD.Depot Desc_Berry 10
+RFDD.Equip Desc_Berry arms 2
+wait 3
+RFDD.Use eat
+wait 1
+RFDD.Use eat
+wait 1
+RFDD.Count Desc_Berry
+RFDD.Set Healing true
+wait 2
+
+log E6 jetpack with only a non-preferred fuel in the depot: no biofuel anywhere, 5 packaged fuel. Expect Desc_Fuel available; after drain + regen, depot fuel 5 -> 4
+RFDD.Inv Desc_Biofuel clear
+RFDD.Depot Desc_Biofuel -100000
+RFDD.Inv Desc_Fuel clear
+RFDD.Depot Desc_Fuel -100000
+RFDD.Depot Desc_Fuel 5
+RFDD.Equip BP_EquipmentDescriptorJetPack back
+wait 3
+RFDD.Use jetpack
+RFDD.Use drain
+wait 8
+RFDD.Use jetpack
+RFDD.Count Desc_Fuel
+
+log E7 jetpack with nothing anywhere. Expect no fuel types available, no refuel, nothing taken
+RFDD.Depot Desc_Fuel -100000
+wait 2
+RFDD.Use jetpack
+RFDD.Use drain
+wait 8
+RFDD.Use jetpack
+
+RFDD.Calls
+log EDGE DONE
+quit
