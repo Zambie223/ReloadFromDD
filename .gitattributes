@@ -5,3 +5,6 @@
 *.uasset binary
 *.umap binary
 *.png binary
+
+# Shell scripts run under bash (WSL / Linux) and must keep LF.
+*.sh text eol=lf
