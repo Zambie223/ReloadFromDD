@@ -1,0 +1,7 @@
+# Dev recon: dumps the HUDHelpers Blueprint function library the HUD boxes use for item counts.
+wait 15
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+wait 3
+RFDD.DumpBP HUDHelpers
+wait 1
+quit

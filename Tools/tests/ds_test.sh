@@ -57,7 +57,11 @@ for i in $(seq 1 180); do
   sleep 5
 done
 bash "$DS" QueryServerState; echo
-sleep 30   # let the pawn spawn and the client's script start
+# Wait for the client's script to start (it starts once the client has the host's settings, which can take
+# minutes on a loaded machine); driving earlier means the client misses the views it is meant to log.
+for i in $(seq 1 60); do grep -aq "\[script\] started" "$CLIENT_LOG" 2>/dev/null && break; sleep 5; done
+grep -a "\[script\] started" "$CLIENT_LOG" | head -1 | cut -c1-120
+sleep 25   # matches the client script's first wait
 
 cmd "RFDD.DevPlayer 0"
 cmd "RFDD.InvFirst 1"

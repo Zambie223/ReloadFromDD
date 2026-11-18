@@ -5,14 +5,18 @@ RFDD.Status
 wait 45
 log DSCLIENT rifle view (server reloaded): expect loaded 15, spare 25, depot 25
 RFDD.Use weapon
+RFDD.HudText
 wait 40
 log DSCLIENT jetpack view: expect depot fuel types available, HUD count from the depot
 RFDD.Use jetpack
+RFDD.HudText
 wait 25
 log DSCLIENT server switch view: expect Ammo=off around now
 RFDD.Status
 RFDD.Use weapon
+RFDD.HudText
 wait 30
 RFDD.Status
+RFDD.HudText
 log DSCLIENT DONE
 quit

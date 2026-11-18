@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "ReloadFromDDConstants.h"
 
+class AFGChainsaw;
 class AFGEquipment;
 class AFGJetPack;
 class UWorld;
@@ -55,6 +56,9 @@ public:
 
 	/** Fuel items the jetpack can burn, from its fuel parameters. */
 	static void GetJetpackFuelTypes(const AFGJetPack* Jetpack, TArray<const UClass*, TInlineAllocator<6>>& OutTypes);
+
+	/** The chainsaw's fuel item (AFGChainsaw::mFuelClass is protected; this class is a friend of AFGChainsaw). */
+	static const UClass* GetChainsawFuelClass(const AFGChainsaw* Chainsaw);
 
 	static void DescribeStatus(TArray<FString>& OutLines);
 

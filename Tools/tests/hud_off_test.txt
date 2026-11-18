@@ -1,0 +1,70 @@
+# HUD counters with a category switched off, plus the jetpack depot-only refresh (dev build).
+# Expected log lines: "[dev] HUD count <widget> <item>: inventory N (category off, depot not added)" while a switch is
+# off, and "inventory N + depot M" again once it is back on. RFDD.HudText logs what the HUD slots actually show
+# (the jetpack slot gets its count pushed by the jetpack's fuel-amount event, which the HUD count log can't see).
+wait 15
+log HUDOFF start
+RFDD.Status
+RFDD.InvFirst 0
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Inv Desc_Biofuel clear
+RFDD.Inv Desc_Fuel clear
+RFDD.Inv Desc_Filter clear
+RFDD.Depot Desc_CartridgeStandard -100000
+RFDD.Depot Desc_Biofuel -100000
+RFDD.Depot Desc_Fuel -100000
+RFDD.Depot Desc_Filter -100000
+RFDD.Depot Desc_CartridgeStandard 40
+RFDD.Depot Desc_Biofuel 30
+RFDD.Depot Desc_Filter 7
+log HUDOFF jetpack depot-only refresh: expect a biofuel count, then +20 without touching the inventory
+RFDD.Equip BP_EquipmentDescriptorJetPack back
+wait 4
+RFDD.Use jetpack
+RFDD.HudText
+RFDD.Depot Desc_Biofuel 20
+wait 6
+RFDD.Use jetpack
+RFDD.HudText
+log HUDOFF jetpack with JetpackFuel off: expect "inventory 0 (category off)" after the next refresh
+RFDD.Set JetpackFuel false
+wait 3
+RFDD.HudText
+RFDD.Depot Desc_Biofuel 1
+wait 4
+RFDD.HudText
+RFDD.Set JetpackFuel true
+wait 3
+RFDD.HudText
+RFDD.Depot Desc_Biofuel 1
+wait 4
+RFDD.HudText
+log HUDOFF rifle: expect 0+40
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+wait 4
+log HUDOFF rifle with Ammo off: expect "inventory 0 (category off)", then "inventory 5 (category off)"
+RFDD.Set Ammo false
+wait 3
+RFDD.Depot Desc_CartridgeStandard 1
+wait 4
+RFDD.Inv Desc_CartridgeStandard 5
+wait 4
+log HUDOFF rifle re-equipped with Ammo off: still inventory only
+RFDD.Equip BP_EquipmentDescriptorGasmask head
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+wait 4
+log HUDOFF rifle with Ammo back on: expect inventory 5 + depot 41
+RFDD.Set Ammo true
+wait 3
+RFDD.Depot Desc_CartridgeStandard 1
+wait 4
+log HUDOFF gas mask with Filters off (timer-driven slot): expect "inventory 0 (category off)", then 0+7 again
+RFDD.Set Filters false
+wait 4
+RFDD.Set Filters true
+wait 4
+RFDD.HudText
+log HUDOFF done
+RFDD.Status
+wait 2
+quit

@@ -62,7 +62,7 @@ Dedicated servers have no menu. Use either of these:
       "ChainsawFuel": true,
       "Filters": true,
       "Healing": true,
-      "SML_ModVersion_DoNotChange": "0.1.0"
+      "SML_ModVersion_DoNotChange": "0.1.1"
   }
   ```
 - **Use the console.** Run these commands from the Server Manager console, which needs admin rights:
@@ -78,7 +78,7 @@ Dedicated servers have no menu. Use either of these:
 - **Other mods:** other equipment that uses consumables is not covered. Only the base game's equipment listed above is.
 - **Saves:** nothing is written into your save. Removing the mod returns everything to the base game's behaviour.
 - **No depot built:** like building from the depot in the base game, the mod uses whatever the depot holds.
-- **Known issue: HUD counters.** The spare-ammo counter next to your weapon (rifle, rebar gun, nobelisks) and the chainsaw's fuel counter show only what is in your inventory, not the depot. Reloading and refuelling from the depot still work. The jetpack's fuel counter does include the depot.
+- **HUD counters.** The equipment HUD's item counts (spare ammo, chainsaw and jetpack fuel, gas mask and hazmat filters) include the depot when that kind is switched on. They also update by themselves within a few seconds when only the depot changes, for example when an uploader adds ammo. In multiplayer, a client's counters include the depot once the host's settings have reached it; in testing that took 40 seconds to 2 minutes after joining a large save, and until then the counters show only the inventory.
 
 ## Status
 
@@ -88,6 +88,8 @@ Version 0.1.0 has been tested on Windows in single player, as a listen-server ho
 - a joined player's reload, eating, filters and jetpack: the server takes the items from the depot and the player's game shows matching counts
 - a manual playthrough of every item, including the hazmat suit against radiation and the Mod Options menu
 - edge cases: a full inventory, the depot emptied during a reload, less than a full magazine available, a jetpack with only a non-preferred fuel, and no fuel at all
+
+Version 0.1.1's HUD counter fix was tested in single player and with a player joined to a Windows dedicated server: the counters with depot stock only, with the depot changing on its own, and with each kind switched off.
 
 It has not been tested in an internet game across several PCs; all multiplayer tests ran on one PC.
 

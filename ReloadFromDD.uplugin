@@ -1,8 +1,8 @@
 {
 	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "0.1.0",
-	"SemVersion": "0.1.0",
+	"Version": 0,
+	"VersionName": "0.1.1",
+	"SemVersion": "0.1.1",
 	"GameVersion": ">=517554",
 	"FriendlyName": "Reload From DD",
 	"Description": "Your equipment takes its consumables from the Dimensional Depot: weapon ammo, jetpack and chainsaw fuel, gas mask and hazmat filters, and healing items. It follows the game's own \"take from inventory before Dimensional Depot\" setting, and each kind can be switched off in Mod Options.",

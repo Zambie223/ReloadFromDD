@@ -298,15 +298,150 @@ namespace RFDD
 			UE_LOG(LogReloadFromDD, Log, TEXT("[dev] %s on %s (category %s), cost:%s"), Function, *Equipment->GetClass()->GetName(),
 				Category == ECategory::Count ? TEXT("none - not redirected") : CategoryKey(Category), Costs.IsEmpty() ? TEXT(" (empty)") : *Costs);
 		}
+
+		/**
+		 * Development aid: logs a HUD count each time it changes for a widget class and item, to see when the HUD refreshes.
+		 * With the item's category switched off, it logs the unchanged inventory count instead.
+		 */
+		void NoteHudCount(const UObject* Widget, const UClass* ItemClass, const int32 InInventory, const int32 InDepot, const bool bCategoryOn)
+		{
+			static TMap<FString, int32> Last;
+			const FString Key = Widget->GetClass()->GetName() + TEXT(" ") + ItemClass->GetName();
+			const int32* Previous = Last.Find(Key);
+			if (Previous && *Previous == InInventory + InDepot)
+			{
+				return;
+			}
+			Last.Add(Key, InInventory + InDepot);
+			if (bCategoryOn)
+			{
+				UE_LOG(LogReloadFromDD, Log, TEXT("[dev] HUD count %s: inventory %d + depot %d"), *Key, InInventory, InDepot);
+			}
+			else
+			{
+				UE_LOG(LogReloadFromDD, Log, TEXT("[dev] HUD count %s: inventory %d (category off, depot not added)"), *Key, InInventory);
+			}
+		}
 #define RFDD_NOTE_UNSCOPED(Inventory, ItemClass, Function) NoteUnscopedRemoval(Inventory, ItemClass, Function)
 #define RFDD_NOTE_COST(Equipment, Category, Function) NoteCostPath(Equipment, Category, Function)
+#define RFDD_NOTE_HUD(Widget, ItemClass, InInventory, InDepot, bCategoryOn) NoteHudCount(Widget, ItemClass, InInventory, InDepot, bCategoryOn)
 #else
 // Directives can't appear inside SUBSCRIBE_METHOD's macro argument, so the dev aids are macros that vanish here.
 #define RFDD_COUNT(Field) ((void)0)
 #define RFDD_COUNT_N(Field, N) ((void)0)
 #define RFDD_NOTE_UNSCOPED(Inventory, ItemClass, Function) ((void)0)
 #define RFDD_NOTE_COST(Equipment, Category, Function) ((void)0)
+#define RFDD_NOTE_HUD(Widget, ItemClass, InInventory, InDepot, bCategoryOn) ((void)0)
 #endif
+
+		/**
+		 * HUD counters. The equipment HUD boxes (weapon, nobelisk detonator, chainsaw, jetpack, gas mask and hazmat suit,
+		 * and their equipment-slot variants) get their "in inventory" count from the Blueprint helper
+		 * HUDHelpers.GetNumItemsFromPlayerInventory, which calls UFGInventoryComponent::GetNumItems from Blueprint, outside
+		 * any equipment scope. A wrapper on GetNumItems' Blueprint thunk adds the depot amount only when the calling frame
+		 * is that helper, the helper was called by one of those HUD widgets, and the item is one the player's equipment
+		 * takes from the depot with its category switched on. Every other Blueprint caller of the helper or of GetNumItems
+		 * (build menu, crafting, MAM, shopping list, pickup notifications) is left unchanged.
+		 */
+		FNativeFuncPtr GOrigExecGetNumItems = nullptr;
+
+		bool IsHudHelperFrame(const FFrame& Stack)
+		{
+			static const FName FunctionName(TEXT("GetNumItemsFromPlayerInventory"));
+			static const FName ClassName(TEXT("HUDHelpers_C"));
+			const UFunction* Node = Stack.Node;
+			const UObject* Outer = Node ? Node->GetOuter() : nullptr;
+			return Outer && Node->GetFName() == FunctionName && Outer->GetFName() == ClassName;
+		}
+
+		bool IsEquipmentHudWidget(const UObject* Caller)
+		{
+			static const FName BoxParent(TEXT("Widget_HUDBox_Equipment_Parent_C"));
+			static const FName SlotParent(TEXT("BPW_HUD_ESlot_Content_C"));
+			for (const UClass* Class = Caller ? Caller->GetClass() : nullptr; Class; Class = Class->GetSuperClass())
+			{
+				const FName Name = Class->GetFName();
+				if (Name == BoxParent || Name == SlotParent)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/** The category under which the player's equipment takes this item from the depot, or Count if none does. */
+		ECategory HudItemCategory(const AFGCharacterPlayer* Character, const UClass* ItemClass)
+		{
+			if (ItemClass->IsChildOf(UFGAmmoType::StaticClass()))
+			{
+				return ECategory::Ammo; // weapons accept any of their ammo classes from the depot
+			}
+			for (AFGEquipment* Equipment : Character->GetActiveEquipments())
+			{
+				if (const AFGChainsaw* Chainsaw = Cast<AFGChainsaw>(Equipment))
+				{
+					if (FReloadFromDDHooks::GetChainsawFuelClass(Chainsaw) == ItemClass)
+					{
+						return ECategory::ChainsawFuel;
+					}
+				}
+				else if (const AFGJetPack* Jetpack = Cast<AFGJetPack>(Equipment))
+				{
+					TArray<const UClass*, TInlineAllocator<6>> FuelTypes;
+					FReloadFromDDHooks::GetJetpackFuelTypes(Jetpack, FuelTypes);
+					if (FuelTypes.Contains(ItemClass))
+					{
+						return ECategory::JetpackFuel;
+					}
+				}
+				else if (Equipment && CostCategory(Equipment) == ECategory::Filters)
+				{
+					for (const FItemAmount& Cost : Equipment->GetCostToUse())
+					{
+						if (Cost.ItemClass.Get() == ItemClass)
+						{
+							return ECategory::Filters;
+						}
+					}
+				}
+			}
+			return ECategory::Count;
+		}
+
+		void ExecGetNumItemsForHud(UObject* Context, FFrame& Stack, RESULT_DECL)
+		{
+			GOrigExecGetNumItems(Context, Stack, RESULT_PARAM);
+			// Stack is the calling Blueprint's frame (the helper); its PreviousFrame is the frame of the widget that called it.
+			if (!IsInGameThread() || !IsHudHelperFrame(Stack) || !Stack.PreviousFrame || !IsEquipmentHudWidget(Stack.PreviousFrame->Object))
+			{
+				return;
+			}
+			// The item is the helper's own parameter, read from its frame (the thunk has already consumed its arguments).
+			static const FName ItemParamName(TEXT("mItemClass"));
+			const FObjectPropertyBase* ItemParam = CastField<FObjectPropertyBase>(Stack.Node->FindPropertyByName(ItemParamName));
+			const UClass* ItemClass = ItemParam && Stack.Locals ? Cast<UClass>(ItemParam->GetObjectPropertyValue_InContainer(Stack.Locals)) : nullptr;
+			const UFGInventoryComponent* Inventory = Cast<UFGInventoryComponent>(Context);
+			const AFGCharacterPlayer* Character = Inventory ? Cast<AFGCharacterPlayer>(Inventory->GetOwner()) : nullptr;
+			if (!ItemClass || !Character || Character->GetInventory() != Inventory)
+			{
+				return;
+			}
+			const ECategory Category = HudItemCategory(Character, ItemClass);
+			if (Category == ECategory::Count)
+			{
+				return;
+			}
+			int32& Result = *static_cast<int32*>(RESULT_PARAM);
+			if (!IsEnabled(Category))
+			{
+				RFDD_NOTE_HUD(Stack.PreviousFrame->Object, ItemClass, Result, 0, false);
+				return;
+			}
+			AFGCentralStorageSubsystem* Depot = AFGCentralStorageSubsystem::Get(Character->GetWorld());
+			const int32 InDepot = Depot ? FMath::Max(0, Depot->GetNumItemsFromCentralStorage(const_cast<UClass*>(ItemClass))) : 0;
+			RFDD_NOTE_HUD(Stack.PreviousFrame->Object, ItemClass, Result, InDepot, true);
+			Result += InDepot;
+		}
 	}
 
 	void SetEnabledMask(const uint8 Mask)
@@ -363,6 +498,19 @@ void FReloadFromDDHooks::Install()
 	}
 	InstallInventoryHooks();
 	InstallEquipmentHooks();
+	if (UFunction* Function = UFGInventoryComponent::StaticClass()->FindFunctionByName(TEXT("GetNumItems")))
+	{
+		// Wrap only once: after Uninstall and a second Install the thunk is already ours (it would then call itself).
+		if (Function->GetNativeFunc() != &ExecGetNumItemsForHud)
+		{
+			GOrigExecGetNumItems = Function->GetNativeFunc();
+			Function->SetNativeFunc(&ExecGetNumItemsForHud);
+		}
+	}
+	else
+	{
+		UE_LOG(LogReloadFromDD, Warning, TEXT("UFGInventoryComponent::GetNumItems not found; HUD counters will not include the depot"));
+	}
 	GHookState = EHookState::Installed;
 	UE_LOG(LogReloadFromDD, Log, TEXT("Hooks installed"));
 }
@@ -525,7 +673,7 @@ void FReloadFromDDHooks::InstallInventoryHooks()
 void FReloadFromDDHooks::InstallEquipmentHooks()
 {
 	// Weapons (rifle, rebar gun, nobelisk detonator). GetSpareAmmunition is the only ammo count: CanReload,
-	// TryAutoReload and ActualReload go through it (the HUD spare-ammo counter does not: it still shows only the inventory). ActualReload then removes the loaded amount,
+	// TryAutoReload and ActualReload go through it. ActualReload then removes the loaded amount,
 	// and only on the authority.
 	SUBSCRIBE_METHOD(AFGWeapon::GetSpareAmmunition, [](auto& Call, const AFGWeapon* Self, TSubclassOf<UFGAmmoType> AmmoClass)
 	{
@@ -685,6 +833,11 @@ void FReloadFromDDHooks::GetJetpackFuelTypes(const AFGJetPack* Jetpack, TArray<c
 			OutTypes.AddUnique(Parameters->mFuelTypeDesc.Get());
 		}
 	}
+}
+
+const UClass* FReloadFromDDHooks::GetChainsawFuelClass(const AFGChainsaw* Chainsaw)
+{
+	return Chainsaw ? Chainsaw->mFuelClass.Get() : nullptr;
 }
 
 void FReloadFromDDHooks::RefreshJetpacks(UWorld* World, const UClass* OnlyItem)

@@ -18,6 +18,14 @@
 #include "ReloadFromDDHooks.h"
 #include "Resources/FGItemDescriptor.h"
 #include "UObject/UObjectIterator.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/TextBlock.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Toolkit/ScriptExprHelper.h"
 #endif
 
 namespace
@@ -319,6 +327,101 @@ namespace
 		{
 			TArray<FString> Lines;
 			FReloadFromDDHooks::DevUseEquipment(FindCharacter(World), Args.Num() > 0 ? Args[0].ToLower() : FString(), Args.Num() > 1 ? Args[1] : FString(), Lines);
+			LogLines(Ar, Lines);
+		}));
+	FAutoConsoleCommandWithWorldArgsAndOutputDevice GDumpBPCommand(
+		TEXT("RFDD.DumpBP"),
+		TEXT("[dev] RFDD.DumpBP <name part|widgets> - writes the bytecode of matching loaded Blueprint classes to Saved/RFDDDump/."),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+		{
+			if (Args.Num() == 0)
+			{
+				Ar.Log(TEXT("Usage: RFDD.DumpBP <name part|widgets>"));
+				return;
+			}
+			const bool bAllWidgets = Args[0].Equals(TEXT("widgets"), ESearchCase::IgnoreCase);
+			const FString Dir = FPaths::ProjectSavedDir() / TEXT("RFDDDump");
+			IFileManager::Get().MakeDirectory(*Dir, true);
+			int32 Dumped = 0;
+			for (TObjectIterator<UBlueprintGeneratedClass> It; It; ++It)
+			{
+				UBlueprintGeneratedClass* Class = *It;
+				const FString Name = Class->GetName();
+				if (Name.StartsWith(TEXT("SKEL_")) || Name.StartsWith(TEXT("REINST_")))
+				{
+					continue;
+				}
+				const bool bMatch = bAllWidgets ? Class->IsChildOf(UUserWidget::StaticClass()) : Name.Contains(Args[0]);
+				if (!bMatch)
+				{
+					continue;
+				}
+				TStringBuilder<65536> Builder;
+				FScriptExprHelper::DumpClassToString(Class, Builder);
+				FFileHelper::SaveStringToFile(Builder.ToView(), *(Dir / Name + TEXT(".txt")));
+				++Dumped;
+			}
+			LogLines(Ar, {FString::Printf(TEXT("DumpBP: %d classes written to %s"), Dumped, *Dir)});
+		}));
+
+	/** The non-empty text blocks under a widget, nested user widgets included, as "Name=Text" (hidden ones marked). */
+	void CollectTexts(const UUserWidget* Widget, TArray<FString>& Out, const int32 Depth = 0)
+	{
+		if (!Widget || !Widget->WidgetTree || Depth > 4)
+		{
+			return;
+		}
+		Widget->WidgetTree->ForEachWidget([&Out, Depth](UWidget* Child)
+		{
+			if (const UTextBlock* Text = Cast<UTextBlock>(Child))
+			{
+				const FString Value = Text->GetText().ToString();
+				if (!Value.IsEmpty())
+				{
+					const ESlateVisibility Visibility = Text->GetVisibility();
+					const bool bHidden = Visibility == ESlateVisibility::Collapsed || Visibility == ESlateVisibility::Hidden;
+					Out.Add(FString::Printf(TEXT("%s=%s%s"), *Text->GetName(), *Value, bHidden ? TEXT(" (hidden)") : TEXT("")));
+				}
+			}
+			else if (const UUserWidget* Nested = Cast<UUserWidget>(Child))
+			{
+				CollectTexts(Nested, Out, Depth + 1);
+			}
+		});
+	}
+
+	FAutoConsoleCommandWithWorldArgsAndOutputDevice GHudTextCommand(
+		TEXT("RFDD.HudText"),
+		TEXT("[dev] RFDD.HudText - logs the text the equipment HUD slots show right now (BPW_HUD_ESlot_* widgets)."),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+		{
+			static const FName SlotParent(TEXT("BPW_HUD_ESlot_Content_C"));
+			TArray<FString> Lines;
+			for (TObjectIterator<UUserWidget> It; It; ++It)
+			{
+				const UUserWidget* Widget = *It;
+				if (Widget->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) || Widget->GetWorld() != World || !Widget->GetCachedWidget().IsValid())
+				{
+					continue;
+				}
+				bool bIsSlot = false;
+				for (const UClass* Class = Widget->GetClass()->GetSuperClass(); Class && !bIsSlot; Class = Class->GetSuperClass())
+				{
+					bIsSlot = Class->GetFName() == SlotParent;
+				}
+				if (!bIsSlot)
+				{
+					continue;
+				}
+				TArray<FString> Texts;
+				CollectTexts(Widget, Texts);
+				Lines.Add(FString::Printf(TEXT("HudText %s%s: %s"), *Widget->GetClass()->GetName(),
+					Widget->IsVisible() ? TEXT("") : TEXT(" (not visible)"), Texts.IsEmpty() ? TEXT("(no text)") : *FString::Join(Texts, TEXT(" | "))));
+			}
+			if (Lines.IsEmpty())
+			{
+				Lines.Add(TEXT("HudText: no equipment HUD slot widgets"));
+			}
 			LogLines(Ar, Lines);
 		}));
 #endif

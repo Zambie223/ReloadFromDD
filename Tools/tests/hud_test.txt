@@ -1,0 +1,64 @@
+# HUD counters (dev build): with consumables only in the depot, each equipment HUD box's "in inventory" count
+# should include the depot. The dev log prints "[dev] HUD count <widget> <item>: inventory N + depot M" whenever
+# a counter's value changes, which also shows whether the HUD refreshes after a depot change.
+wait 15
+log HUDTEST start
+RFDD.Status
+RFDD.InvFirst 0
+RFDD.Inv Desc_CartridgeStandard clear
+RFDD.Inv Desc_NobeliskExplosive clear
+RFDD.Inv Desc_SpikedRebar clear
+RFDD.Inv Desc_Filter clear
+RFDD.Inv Desc_HazmatFilter clear
+RFDD.Inv Desc_Fuel clear
+RFDD.Inv Desc_Biofuel clear
+RFDD.Depot Desc_CartridgeStandard 40
+RFDD.Depot Desc_NobeliskExplosive 12
+RFDD.Depot Desc_SpikedRebar 30
+RFDD.Depot Desc_Filter 7
+RFDD.Depot Desc_HazmatFilter 9
+RFDD.Depot Desc_Fuel 11
+RFDD.Depot Desc_Biofuel 13
+log HUDTEST rifle
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+wait 3
+RFDD.Use empty
+RFDD.Use reload
+wait 4
+RFDD.Use weapon
+log HUDTEST rifle with Ammo off (no new rifle count line expected)
+RFDD.Set Ammo false
+wait 3
+RFDD.Set Ammo true
+wait 3
+log HUDTEST rebar
+RFDD.Equip Desc_RebarGun arms
+wait 3
+log HUDTEST nobelisk
+RFDD.Equip BP_EquipmentDescriptorNobeliskDetonator arms
+wait 3
+log HUDTEST chainsaw
+RFDD.Equip Desc_Chainsaw arms
+wait 3
+RFDD.Use saw 100000
+RFDD.Use saw 100000
+wait 3
+RFDD.Use chainsaw
+log HUDTEST jetpack
+RFDD.Equip BP_EquipmentDescriptorJetPack back
+wait 3
+RFDD.Use jetpack
+log HUDTEST gas mask
+RFDD.Equip BP_EquipmentDescriptorGasmask head
+wait 3
+log HUDTEST hazmat
+RFDD.Equip BP_EquipmentDescriptorHazmatSuit body
+wait 3
+log HUDTEST pickup check: add 5 rounds to the inventory (the pickup notification must show inventory amounts only)
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+RFDD.Inv Desc_CartridgeStandard 5
+wait 3
+RFDD.Use weapon
+log HUDTEST done
+wait 2
+quit

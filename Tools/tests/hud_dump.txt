@@ -1,0 +1,17 @@
+# Dev recon: dumps the bytecode of loaded widget and equipment Blueprints with the rifle, then the chainsaw, equipped,
+# to find what the HUD spare-ammo and fuel counters read. Output: <userdir>/Saved/RFDDDump/.
+wait 15
+log HUDDUMP start
+RFDD.Depot Desc_CartridgeStandard 50
+RFDD.Depot Desc_Biofuel 20
+RFDD.Equip BP_EquipmentDescriptorRifle arms
+wait 4
+RFDD.DumpBP widgets
+RFDD.DumpBP Equip_
+RFDD.Equip Desc_Chainsaw arms
+wait 4
+RFDD.DumpBP widgets
+RFDD.DumpBP Equip_
+log HUDDUMP done
+wait 2
+quit
